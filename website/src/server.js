@@ -1,0 +1,61 @@
+require("dotenv/config")
+const path = require("node:path")
+const express = require("express")
+const helmet = require("helmet")
+const compression = require("compression")
+const rateLimit = require("express-rate-limit")
+
+const pagesRouter = require("./routes/pages")
+const apiRouter = require("./routes/api")
+const { getClinicSettings } = require("./queries")
+
+const app = express()
+const PORT = process.env.PORT || 3001
+
+app.set("view engine", "ejs")
+app.set("views", path.join(__dirname, "views"))
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        // EJS output is fully server-controlled (no user HTML is ever
+        // rendered unescaped) — no inline-script allowance needed.
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["https://www.google.com"],
+      },
+    },
+  })
+)
+app.use(compression())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+app.use(express.static(path.join(__dirname, "public"), { maxAge: "1d" }))
+// Real clinic photos/videos live in the repo-root public/ folder (shared
+// asset dump), separate from this app's own css/js under src/public.
+app.use("/media", express.static(path.join(__dirname, "..", "..", "public"), { maxAge: "7d" }))
+
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false })
+app.use("/api", apiLimiter, apiRouter)
+
+app.use("/", pagesRouter)
+
+app.use(async (req, res) => {
+  const clinic = res.locals.clinic || (await getClinicSettings().catch(() => null))
+  res.status(404).render("404", { title: "Page not found", description: "", clinic })
+})
+
+app.use(async (err, req, res, _next) => {
+  console.error(err)
+  const clinic = res.locals.clinic || (await getClinicSettings().catch(() => null))
+  res.status(500).render("500", { title: "Something went wrong", description: "", clinic })
+})
+
+app.listen(PORT, () => {
+  console.log(`Zafoor Clinic website running at http://localhost:${PORT}`)
+})
