@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
+import { requireRole } from "@/lib/auth"
 import { serializeDecimal } from "@/lib/serialize"
 import { serviceSchema, type ServiceInput } from "@/lib/validations/billing"
 
@@ -19,6 +20,7 @@ export async function getServiceBySlug(slug: string) {
 }
 
 export async function createService(input: ServiceInput) {
+  await requireRole("ADMIN")
   const data = serviceSchema.parse(input)
   const service = await prisma.service.create({ data })
   revalidatePath("/services")
@@ -26,6 +28,7 @@ export async function createService(input: ServiceInput) {
 }
 
 export async function updateService(id: string, input: ServiceInput) {
+  await requireRole("ADMIN")
   const data = serviceSchema.parse(input)
   const service = await prisma.service.update({ where: { id }, data })
   revalidatePath("/services")
@@ -33,11 +36,13 @@ export async function updateService(id: string, input: ServiceInput) {
 }
 
 export async function toggleServiceActive(id: string, active: boolean) {
+  await requireRole("ADMIN")
   await prisma.service.update({ where: { id }, data: { active } })
   revalidatePath("/services")
 }
 
 export async function deleteService(id: string) {
+  await requireRole("ADMIN")
   await prisma.service.delete({ where: { id } })
   revalidatePath("/services")
 }

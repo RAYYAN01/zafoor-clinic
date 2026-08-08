@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { addMinutes, isBefore, isToday, parse, startOfDay, endOfDay } from "date-fns"
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, getCurrentUserOrNull } from "@/lib/auth"
 import { generateAppointmentCode } from "@/lib/sequence"
 import { serializeDecimal } from "@/lib/serialize"
 import {
@@ -79,7 +79,7 @@ export async function bookAppointment(input: BookAppointmentInput) {
   })
   if (conflict) throw new Error("This slot was just booked. Please choose another slot.")
 
-  const user = await getCurrentUser().catch(() => null)
+  const user = await getCurrentUserOrNull()
 
   const appointment = await prisma.$transaction(async (tx) => {
     const appointmentCode = await generateAppointmentCode(tx)

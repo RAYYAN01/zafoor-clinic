@@ -1,30 +1,83 @@
+import "server-only"
 import { cache } from "react"
+import { cookies } from "next/headers"
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto"
 import { prisma } from "@/lib/prisma"
 import { serializeDecimal } from "@/lib/serialize"
+import type { StaffRole } from "@/generated/prisma/client"
 
-/**
- * Placeholder identity layer.
- *
- * This project's real authentication system is built separately and is not
- * reproduced here. Every module that needs "who is acting" (registeredBy,
- * note author, message sender, doctor on an appointment, ...) calls
- * `getCurrentUser()` below. Swap this implementation for a call into the
- * real session/auth system — nothing downstream needs to change since
- * callers only depend on the returned `User` shape.
- */
-export const getCurrentUser = cache(async () => {
-  const user = await prisma.user.findFirst({
-    where: { email: "admin@naazhospital.test" },
+const SESSION_COOKIE = "zafoor_session"
+const SESSION_TTL_DAYS = 30
+
+// ── Password hashing (scrypt, salted, constant-time compare) ─────────────
+
+export function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex")
+  const hash = scryptSync(password, salt, 64).toString("hex")
+  return `${salt}:${hash}`
+}
+
+export function verifyPassword(password: string, stored: string) {
+  const [salt, hash] = stored.split(":")
+  if (!salt || !hash) return false
+  const hashBuffer = Buffer.from(hash, "hex")
+  const candidate = scryptSync(password, salt, 64)
+  return hashBuffer.length === candidate.length && timingSafeEqual(candidate, hashBuffer)
+}
+
+// ── Sessions ───────────────────────────────────────────────────────────
+
+export async function createSession(userId: string) {
+  const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000)
+  const session = await prisma.session.create({ data: { userId, expiresAt } })
+  const cookieStore = await cookies()
+  cookieStore.set(SESSION_COOKIE, session.id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    expires: expiresAt,
+    path: "/",
   })
+}
 
-  if (!user) {
-    throw new Error(
-      "No seeded staff user found. Run `npm run db:seed` to create the placeholder identity."
-    )
+export async function destroySession() {
+  const cookieStore = await cookies()
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
+  if (sessionId) {
+    await prisma.session.delete({ where: { id: sessionId } }).catch(() => {})
   }
+  cookieStore.delete(SESSION_COOKIE)
+}
 
-  return user
+/** Reads the session cookie and returns the signed-in user, or null. Cached per-request. */
+export const getCurrentUserOrNull = cache(async () => {
+  const cookieStore = await cookies()
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
+  if (!sessionId) return null
+
+  const session = await prisma.session.findUnique({ where: { id: sessionId }, include: { user: true } })
+  if (!session || session.expiresAt < new Date() || !session.user.active) return null
+
+  return session.user
 })
+
+/** Same as `getCurrentUserOrNull` but throws — use inside server actions/pages that require auth. */
+export async function getCurrentUser() {
+  const user = await getCurrentUserOrNull()
+  if (!user) throw new Error("Not authenticated")
+  return user
+}
+
+/** Server-side authorization gate. Never trust a client-side role check alone. */
+export async function requireRole(...roles: StaffRole[]) {
+  const user = await getCurrentUser()
+  if (!roles.includes(user.role)) {
+    throw new Error("Forbidden: your role does not have access to this action")
+  }
+  return user
+}
+
+// ── Staff directory ────────────────────────────────────────────────────
 
 export async function getAllStaff() {
   const staff = await prisma.user.findMany({ orderBy: { name: "asc" } })

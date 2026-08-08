@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
+import { requireRole } from "@/lib/auth"
 import { generateBillNumber } from "@/lib/sequence"
 import { toPlain } from "@/lib/serialize"
 import { createBillSchema, type CreateBillInput, type BillItemInput } from "@/lib/validations/billing"
@@ -48,6 +49,7 @@ export async function createBill(input: CreateBillInput) {
 }
 
 export async function cancelBill(id: string, patientId: string) {
+  await requireRole("ADMIN", "BILLING")
   await prisma.bill.update({ where: { id }, data: { status: "CANCELLED", cancelledAt: new Date() } })
   revalidatePath("/billing")
   revalidatePath(`/patients/${patientId}`)

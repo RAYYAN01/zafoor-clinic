@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { startOfDay, endOfDay, subDays, differenceInCalendarDays, format } from "date-fns"
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { requireRole } from "@/lib/auth"
 import { toPlain } from "@/lib/serialize"
 import { expenseSchema, type ExpenseInput } from "@/lib/validations/billing"
 
@@ -11,7 +11,7 @@ import { expenseSchema, type ExpenseInput } from "@/lib/validations/billing"
 
 export async function addExpense(input: ExpenseInput) {
   const data = expenseSchema.parse(input)
-  const user = await getCurrentUser()
+  const user = await requireRole("ADMIN", "BILLING")
   const expense = await prisma.expense.create({
     data: {
       ...data,
@@ -25,6 +25,7 @@ export async function addExpense(input: ExpenseInput) {
 }
 
 export async function deleteExpense(id: string) {
+  await requireRole("ADMIN", "BILLING")
   await prisma.expense.delete({ where: { id } })
   revalidatePath("/finance/expenses")
   revalidatePath("/finance/dashboard")

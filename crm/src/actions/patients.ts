@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, requireRole } from "@/lib/auth"
 import { generateUHID } from "@/lib/sequence"
 import { serializeDecimal } from "@/lib/serialize"
 import {
@@ -102,6 +102,7 @@ export async function updatePatientCore(patientId: string, input: PatientCoreInp
 }
 
 export async function updatePatientStatus(patientId: string, status: "ACTIVE" | "INACTIVE") {
+  await requireRole("ADMIN", "DOCTOR")
   await prisma.patient.update({ where: { id: patientId }, data: { status } })
   revalidatePath(`/patients/${patientId}`)
   revalidatePath("/patients")

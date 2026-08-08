@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { requireRole } from "@/lib/auth"
 import { generateReceiptNumber } from "@/lib/sequence"
 import { toPlain } from "@/lib/serialize"
 import { collectPaymentSchema, refundSchema, type CollectPaymentInput, type RefundInput } from "@/lib/validations/billing"
@@ -15,7 +15,7 @@ function nextBillStatus(netAmount: number, amountPaid: number): "PENDING" | "PAR
 
 export async function collectPayment(billId: string, patientId: string, input: CollectPaymentInput) {
   const data = collectPaymentSchema.parse(input)
-  const user = await getCurrentUser()
+  const user = await requireRole("ADMIN", "BILLING", "RECEPTIONIST")
 
   const bill = await prisma.bill.findUniqueOrThrow({ where: { id: billId } })
   const balanceDue = Number(bill.balanceDue)
@@ -117,7 +117,7 @@ export async function getReceipt(paymentId: string) {
 // ── Advances ────────────────────────────────────────────────────────────
 
 export async function addAdvance(patientId: string, input: { amount: number; method: string; referenceNumber?: string; notes?: string }) {
-  const user = await getCurrentUser()
+  const user = await requireRole("ADMIN", "BILLING", "RECEPTIONIST")
   const advance = await prisma.patientAdvance.create({
     data: {
       patientId,
@@ -153,7 +153,7 @@ export async function requestRefund(patientId: string, input: RefundInput, billI
 }
 
 export async function processRefund(id: string, decision: "COMPLETE" | "REJECT") {
-  const user = await getCurrentUser()
+  const user = await requireRole("ADMIN", "BILLING")
   const refund = await prisma.refund.findUniqueOrThrow({ where: { id } })
 
   if (decision === "REJECT") {

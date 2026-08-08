@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { initials } from "@/lib/format"
+import { logout } from "@/actions/auth"
 
 export function Header({ user }: { user: { name: string; role: string } }) {
   const router = useRouter()
@@ -73,7 +74,9 @@ export function Header({ user }: { user: { name: string; role: string } }) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled>Account settings</DropdownMenuItem>
-          <DropdownMenuItem disabled>Sign out</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => logout()} className="text-destructive">
+            Sign out
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
