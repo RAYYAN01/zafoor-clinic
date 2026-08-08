@@ -1,0 +1,104 @@
+import { notFound } from "next/navigation"
+import { getPatientById, listAllTags } from "@/actions/patients"
+import { getPatientTimeline } from "@/actions/timeline"
+import { getPatientCrmData } from "@/actions/crm"
+import { getAllStaff } from "@/lib/auth"
+import { getEncountersForPatient } from "@/actions/encounters"
+import { getClinicalHistory } from "@/actions/history"
+import { getClinicalReports } from "@/actions/reports"
+import { getPatientRecords } from "@/actions/records"
+import { getPatientBillingSummary } from "@/actions/billing"
+import { prisma } from "@/lib/prisma"
+import { PatientHeader } from "@/components/patients/profile/patient-header"
+import { OverviewTab } from "@/components/patients/profile/overview-tab"
+import { FamilyInsuranceTab } from "@/components/patients/profile/family-insurance-tab"
+import { MedicalTab } from "@/components/patients/profile/medical-tab"
+import { DocumentsTab } from "@/components/patients/profile/documents-tab"
+import { PreferencesTab } from "@/components/patients/profile/preferences-tab"
+import { TimelineTab } from "@/components/patients/profile/timeline-tab"
+import { CrmTab } from "@/components/patients/profile/crm-tab"
+import { EncountersTab } from "@/components/emr/encounters-tab"
+import { ClinicalHistoryTab } from "@/components/emr/clinical-history-tab"
+import { RecordsTab } from "@/components/emr/records-tab"
+import { PatientBillingTab } from "@/components/billing/patient-billing-tab"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+export default async function PatientProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const patient = await getPatientById(id)
+  if (!patient) notFound()
+
+  const [timeline, crmData, staff, allTags, encounters, clinicalHistory, reports, records, admissions, billingSummary] =
+    await Promise.all([
+      getPatientTimeline(id),
+      getPatientCrmData(id),
+      getAllStaff(),
+      listAllTags(),
+      getEncountersForPatient(id),
+      getClinicalHistory(id),
+      getClinicalReports(id),
+      getPatientRecords(id),
+      prisma.admission.findMany({ where: { patientId: id }, orderBy: { admittedAt: "desc" } }),
+      getPatientBillingSummary(id),
+    ])
+
+  return (
+    <div className="space-y-6">
+      <PatientHeader patient={patient} allTags={allTags} />
+
+      <Tabs defaultValue="overview">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="encounters">Encounters</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="family">Family & Insurance</TabsTrigger>
+          <TabsTrigger value="medical">Medical</TabsTrigger>
+          <TabsTrigger value="history">Clinical History</TabsTrigger>
+          <TabsTrigger value="records">Reports & Records</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="crm">CRM</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-4">
+          <OverviewTab patient={patient} />
+        </TabsContent>
+        <TabsContent value="encounters" className="mt-4">
+          <EncountersTab patientId={id} encounters={encounters} />
+        </TabsContent>
+        <TabsContent value="billing" className="mt-4">
+          <PatientBillingTab patientId={id} summary={billingSummary} />
+        </TabsContent>
+        <TabsContent value="family" className="mt-4">
+          <FamilyInsuranceTab patient={patient} />
+        </TabsContent>
+        <TabsContent value="medical" className="mt-4">
+          <MedicalTab patient={patient} />
+        </TabsContent>
+        <TabsContent value="history" className="mt-4">
+          <ClinicalHistoryTab patientId={id} data={clinicalHistory} />
+        </TabsContent>
+        <TabsContent value="records" className="mt-4">
+          <RecordsTab patientId={id} reports={reports} records={records} admissions={admissions} />
+        </TabsContent>
+        <TabsContent value="documents" className="mt-4">
+          <DocumentsTab patient={patient} />
+        </TabsContent>
+        <TabsContent value="preferences" className="mt-4">
+          <PreferencesTab patient={patient} />
+        </TabsContent>
+        <TabsContent value="timeline" className="mt-4">
+          <TimelineTab events={timeline} />
+        </TabsContent>
+        <TabsContent value="crm" className="mt-4">
+          <CrmTab patientId={id} data={crmData} staff={staff} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
