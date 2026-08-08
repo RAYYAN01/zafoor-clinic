@@ -35,12 +35,12 @@ async function main() {
 
   const doctor = await prisma.user.create({
     data: {
-      name: "Dr. Zafoor",
+      name: "Dr. Mufeeda Roohi",
       email: "doctor@zafoorclinic.test",
       phone: "8940399403",
       passwordHash: hashPassword("ChangeMe123!"),
       role: "DOCTOR",
-      specialization: "General & Skin Consultations",
+      specialization: "Aesthetic Physician, Diabetologist & Family Physician",
       consultationFee: 500,
     },
   })
@@ -84,6 +84,86 @@ async function main() {
     )
   }
   console.log(`  ${services.length} services created`)
+
+  // ── Reviews — real patient reviews from the clinic's Google listing ──
+  // (see https://share.google/752spGhgtYfOZZcy2), transcribed verbatim.
+  // Not fabricated — every entry below is an actual published review.
+  const reviewDefs = [
+    {
+      patientName: "Abdul Khadar",
+      rating: 5,
+      comment:
+        "I came here for diabetic treatment, Dr Roohi guided me very well and clearly explained diet control, and also provided a diet chart, I followed only 2 weeks, My sugar level came 92/112 From 193/293, thank you Dr❤️",
+      serviceSlug: "diabetes-review",
+    },
+    {
+      patientName: "omar ali",
+      rating: 5,
+      comment:
+        "Dr.Mufeeda Roohi diagnosing the patient well getting the medical records perfectly and starting the treatment. The treatment is periodically step by step to cure the patient according to their satisfaction. The clinic aim is to educate the patients of their disease and after the cure post control advice to refine throughout rest of their life. The clinic is very clean and hygienic. One is getting good tips of lifestyle and food habits to over come problems related to their disease. Masha Allah.",
+      serviceSlug: "diabetes-review",
+    },
+    {
+      patientName: "Sneha Vuppala",
+      rating: 5,
+      comment:
+        "I came here for a cosmetic treatment and doctor guided me very well and explained the procedure very patiently the staff there also kind the clinic was pleasant and also treatments where affordable.",
+      serviceSlug: "skin-review",
+    },
+    {
+      patientName: "Aaliya Parvin",
+      rating: 5,
+      comment:
+        "I had a great experience with Dr. Mufeeda. She quickly identified the root cause of my hair fall and explained the issue very clearly. Her approach to treatment was precise and to the point, without unnecessary medications or procedures. I started noticing positive results much sooner than I expected. I truly appreciate her efficiency, professionalism, and the care she showed throughout the process. Highly recommended for anyone dealing with hair fall concerns",
+      serviceSlug: "hairfall-review",
+    },
+    {
+      patientName: "Monica subbu",
+      rating: 5,
+      comment: "I have done hydra facial here\nVery satisfying\nCost efficient",
+      serviceSlug: "skin-review",
+    },
+    {
+      patientName: "Ponmozhi Narayanan",
+      rating: 5,
+      comment: "One of the best clinic in Sevenwells, Dr.Mufeeda Roohi is kind with patient. Good to visit Dr.Mufeeda for all the problems",
+      serviceSlug: "general-review",
+    },
+    {
+      patientName: "Apsara Apsara",
+      rating: 5,
+      comment:
+        "When I caught a nasty cold last winter, the care I received at Zafoor Clinic made all the difference. The doctor took the time to explain my treatment plan and the remedies truly helped clear my congestion and soothe my sore throat.",
+      serviceSlug: "general-review",
+    },
+    {
+      patientName: "Habeeb",
+      rating: 5,
+      comment:
+        "I would like to express my heartfelt gratitude for the outstanding care I received at your facility. From the moment I arrived, everyone I encountered was kind, professional, and attentive. Their dedication to patient well-being truly stood out.\n\nA special thanks to Dr. Mufeeda Roohi for going above and beyond to ensure my comfort and care. It's reassuring to know that such compassionate and skilled healthcare providers are part of the community.\n\nThank you for your incredible work!",
+      serviceSlug: "general-review",
+    },
+    {
+      patientName: "Junaith King",
+      rating: 5,
+      comment: "I went here for my leg pain issue\nDoctor gave me clear explanation and good service at really affordable cost.\nOverall treatment was good",
+      serviceSlug: "general-review",
+    },
+  ]
+  for (const [i, def] of reviewDefs.entries()) {
+    const service = services.find((s) => s.slug === def.serviceSlug)
+    await prisma.review.create({
+      data: {
+        patientName: def.patientName,
+        rating: def.rating,
+        comment: def.comment,
+        serviceId: service ? service.id : null,
+        published: true,
+        displayOrder: i,
+      },
+    })
+  }
+  console.log(`  ${reviewDefs.length} real patient reviews seeded (published)`)
 
   // ── Clinic settings (website content) ───────────────────────────────
   await prisma.clinicSettings.upsert({
