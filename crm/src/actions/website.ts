@@ -16,12 +16,9 @@ import {
 // ── Clinic settings — read by both the CRM and the public website API ───
 
 export async function getClinicSettings() {
-  const settings = await prisma.clinicSettings.upsert({
-    where: { id: "clinic" },
-    create: { id: "clinic" },
-    update: {},
-  })
-  return settings
+  const existing = await prisma.clinicSettings.findUnique({ where: { id: "clinic" } })
+  if (existing) return existing
+  return prisma.clinicSettings.create({ data: { id: "clinic" } })
 }
 
 export async function updateClinicSettings(input: ClinicSettingsInput) {

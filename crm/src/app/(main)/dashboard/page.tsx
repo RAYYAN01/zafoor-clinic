@@ -15,7 +15,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Today at a glance across Naaz Hospital.</p>
+        <p className="text-sm text-muted-foreground">Today at a glance across Zafoor Clinic.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">

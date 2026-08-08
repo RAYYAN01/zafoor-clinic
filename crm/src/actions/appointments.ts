@@ -285,6 +285,27 @@ export async function getAppointments(params: {
   }
 }
 
+/** Appointment counts per day for a calendar month view (1-indexed month). */
+export async function getAppointmentCountsForMonth(year: number, month: number) {
+  const monthStart = new Date(year, month - 1, 1)
+  const monthEnd = new Date(year, month, 0, 23, 59, 59, 999)
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      scheduledAt: { gte: monthStart, lte: monthEnd },
+      status: { notIn: ["CANCELLED", "RESCHEDULED"] },
+    },
+    select: { scheduledAt: true },
+  })
+
+  const counts: Record<string, number> = {}
+  for (const a of appointments) {
+    const key = a.scheduledAt.toISOString().slice(0, 10)
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  return counts
+}
+
 export async function getTodayQueue(doctorId?: string) {
   const dayStart = startOfDay(new Date())
   const dayEnd = endOfDay(new Date())

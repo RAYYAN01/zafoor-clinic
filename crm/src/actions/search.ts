@@ -20,7 +20,7 @@ export async function globalSearch(rawQuery: string) {
 
   if (parsed.text) {
     const digitsOnly = /^\d{4,}$/.test(parsed.text)
-    const looksLikeUhid = /^nh-?/i.test(parsed.text)
+    const looksLikeUhid = /^zc-?/i.test(parsed.text)
 
     if (digitsOnly) {
       AND.push({ phone: { contains: parsed.text } })

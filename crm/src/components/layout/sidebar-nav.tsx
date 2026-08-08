@@ -82,7 +82,7 @@ const navGroups = [
     label: "Calendar",
     dot: "bg-orange-500",
     text: "text-orange-600 dark:text-orange-400",
-    items: [{ href: "/hr/calendar", label: "Calendar", icon: CalendarCheck2 }],
+    items: [{ href: "/calendar", label: "Calendar", icon: CalendarCheck2 }],
   },
 ]
 
