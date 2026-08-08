@@ -26,8 +26,6 @@ import {
   deleteAllergy,
   addChronicDisease,
   deleteChronicDisease,
-  addVaccination,
-  deleteVaccination,
 } from "@/actions/patients"
 import type { getPatientById } from "@/actions/patients"
 
@@ -104,30 +102,6 @@ export function MedicalTab({ patient }: { patient: Patient }) {
                 <Badge variant="outline">{c.status}</Badge>
               </div>
               <DeleteButton onDelete={() => deleteChronicDisease(patient.id, c.id)} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Vaccinations</CardTitle>
-          <EntityDialog title="Add Vaccination">
-            {(close) => <VaccinationForm patientId={patient.id} onDone={close} />}
-          </EntityDialog>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {patient.vaccinations.length === 0 && <p className="text-sm text-muted-foreground">None recorded.</p>}
-          {patient.vaccinations.map((v) => (
-            <div key={v.id} className="flex items-start justify-between rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">{v.vaccineName} — Dose {v.doseNumber}</p>
-                <p className="text-xs text-muted-foreground">
-                  Given {formatDate(v.dateGiven)}
-                  {v.nextDueDate ? ` · Next due ${formatDate(v.nextDueDate)}` : ""}
-                </p>
-              </div>
-              <DeleteButton onDelete={() => deleteVaccination(patient.id, v.id)} />
             </div>
           ))}
         </CardContent>
@@ -292,63 +266,6 @@ function ChronicDiseaseForm({ patientId, onDone }: { patientId: string; onDone: 
         <Textarea id="cd-notes" name="notes" />
       </div>
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Saving…" : "Add Condition"}</Button>
-    </form>
-  )
-}
-
-function VaccinationForm({ patientId, onDone }: { patientId: string; onDone: () => void }) {
-  const [pending, startTransition] = useTransition()
-  return (
-    <form
-      className="space-y-3"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const fd = new FormData(e.currentTarget)
-        startTransition(async () => {
-          try {
-            await addVaccination(patientId, {
-              vaccineName: String(fd.get("vaccineName") || ""),
-              doseNumber: Number(fd.get("doseNumber") || 1),
-              dateGiven: new Date(String(fd.get("dateGiven"))),
-              nextDueDate: fd.get("nextDueDate") ? new Date(String(fd.get("nextDueDate"))) : undefined,
-              batchNumber: String(fd.get("batchNumber") || "") || undefined,
-              administeredBy: String(fd.get("administeredBy") || "") || undefined,
-            })
-            toast.success("Vaccination added")
-            onDone()
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Could not add vaccination")
-          }
-        })
-      }}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5 col-span-2">
-          <Label htmlFor="vaccineName">Vaccine name</Label>
-          <Input id="vaccineName" name="vaccineName" required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="doseNumber">Dose number</Label>
-          <Input id="doseNumber" name="doseNumber" type="number" min={1} defaultValue={1} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="dateGiven">Date given</Label>
-          <Input id="dateGiven" name="dateGiven" type="date" required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="nextDueDate">Next due</Label>
-          <Input id="nextDueDate" name="nextDueDate" type="date" />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="batchNumber">Batch number</Label>
-          <Input id="batchNumber" name="batchNumber" />
-        </div>
-        <div className="space-y-1.5 col-span-2">
-          <Label htmlFor="administeredBy">Administered by</Label>
-          <Input id="administeredBy" name="administeredBy" />
-        </div>
-      </div>
-      <Button type="submit" disabled={pending} className="w-full">{pending ? "Saving…" : "Add Vaccination"}</Button>
     </form>
   )
 }

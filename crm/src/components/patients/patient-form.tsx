@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PhotoUpload } from "@/components/patients/photo-upload"
-import { bloodGroupLabels, genderLabels, maritalStatusLabels } from "@/lib/labels"
+import { bloodGroupLabels, genderLabels } from "@/lib/labels"
 
 function toDateInputValue(date: Date | string | null | undefined) {
   if (!date) return ""
@@ -51,7 +51,6 @@ export function PatientForm({
       dob: defaultValues?.dob ? toDateInputValue(defaultValues.dob) : undefined,
       gender: defaultValues?.gender,
       bloodGroup: defaultValues?.bloodGroup ?? "UNKNOWN",
-      maritalStatus: defaultValues?.maritalStatus ?? "UNKNOWN",
       occupation: defaultValues?.occupation ?? "",
       phone: defaultValues?.phone ?? "",
       alternatePhone: defaultValues?.alternatePhone ?? "",
@@ -188,30 +187,6 @@ export function PatientForm({
                       </FormControl>
                       <SelectContent>
                         {Object.entries(bloodGroupLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="maritalStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marital status</FormLabel>
-                    <Select items={maritalStatusLabels} onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(maritalStatusLabels).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>

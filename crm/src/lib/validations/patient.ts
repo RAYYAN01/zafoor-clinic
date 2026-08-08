@@ -4,15 +4,12 @@ export const genderEnum = z.enum(["MALE", "FEMALE", "OTHER"])
 export const bloodGroupEnum = z.enum([
   "A_POS", "A_NEG", "B_POS", "B_NEG", "AB_POS", "AB_NEG", "O_POS", "O_NEG", "UNKNOWN",
 ])
-export const maritalStatusEnum = z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "UNKNOWN"])
-
 export const patientCoreSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().optional(),
   dob: z.string().optional(),
   gender: genderEnum.optional(),
   bloodGroup: bloodGroupEnum.optional(),
-  maritalStatus: maritalStatusEnum.optional(),
   occupation: z.string().trim().optional(),
   phone: z.string().trim().min(7, "Enter a valid phone number"),
   alternatePhone: z.string().trim().optional(),
@@ -79,16 +76,6 @@ export const chronicDiseaseSchema = z.object({
 })
 export type ChronicDiseaseInput = z.infer<typeof chronicDiseaseSchema>
 
-export const vaccinationSchema = z.object({
-  vaccineName: z.string().trim().min(1, "Vaccine name is required"),
-  doseNumber: z.coerce.number().int().min(1).default(1),
-  dateGiven: z.coerce.date(),
-  nextDueDate: z.coerce.date().optional().nullable(),
-  batchNumber: z.string().trim().optional(),
-  administeredBy: z.string().trim().optional(),
-})
-export type VaccinationInput = z.infer<typeof vaccinationSchema>
-
 export const communicationPreferenceSchema = z.object({
   preferredChannel: z.enum(["SMS", "EMAIL", "WHATSAPP", "CALL", "SYSTEM"]),
   allowSms: z.boolean(),
@@ -102,10 +89,7 @@ export type CommunicationPreferenceInput = z.infer<typeof communicationPreferenc
 
 export const documentSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
-  category: z.enum([
-    "ID_PROOF", "INSURANCE", "LAB_REPORT", "PRESCRIPTION",
-    "DISCHARGE_SUMMARY", "CONSENT_FORM", "IMAGING", "OTHER",
-  ]),
+  category: z.enum(["ID_PROOF", "INSURANCE", "LAB_REPORT", "PRESCRIPTION", "CONSENT_FORM", "OTHER"]),
   fileUrl: z.string().trim().min(1, "File is required"),
   fileType: z.string().trim().optional(),
 })

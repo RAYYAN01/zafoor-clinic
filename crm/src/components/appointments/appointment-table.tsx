@@ -118,9 +118,6 @@ function AppointmentRow({ appointment: apt }: { appointment: Appointments[number
                 Cancel
               </DropdownMenuItem>
             )}
-            {apt.type === "VIDEO" && apt.videoLink && (
-              <DropdownMenuItem render={<Link href={apt.videoLink}>Join Video Call</Link>} />
-            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

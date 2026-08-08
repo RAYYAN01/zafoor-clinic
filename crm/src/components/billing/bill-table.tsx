@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { billTypeLabels, billStatusLabels, billStatusColors, payerTypeLabels } from "@/lib/labels"
+import { billStatusLabels, billStatusColors } from "@/lib/labels"
 import { formatCurrency, formatDate, patientDisplayName } from "@/lib/format"
 import type { getBills } from "@/actions/billing"
 
@@ -25,8 +25,7 @@ export function BillTable({ bills }: { bills: Bills }) {
         <TableRow>
           <TableHead>Bill #</TableHead>
           <TableHead>Patient</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Payer</TableHead>
+          <TableHead>Service</TableHead>
           <TableHead>Date</TableHead>
           <TableHead>Net Amount</TableHead>
           <TableHead>Balance Due</TableHead>
@@ -46,8 +45,7 @@ export function BillTable({ bills }: { bills: Bills }) {
                 {patientDisplayName(bill.patient)}
               </Link>
             </TableCell>
-            <TableCell>{billTypeLabels[bill.type]}</TableCell>
-            <TableCell>{payerTypeLabels[bill.payerType]}</TableCell>
+            <TableCell>{bill.service?.name ?? "—"}</TableCell>
             <TableCell>{formatDate(bill.issuedAt)}</TableCell>
             <TableCell>{formatCurrency(Number(bill.netAmount))}</TableCell>
             <TableCell className={Number(bill.balanceDue) > 0 ? "font-medium text-red-600" : ""}>

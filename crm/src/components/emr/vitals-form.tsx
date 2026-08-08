@@ -16,7 +16,6 @@ type Vitals = {
   bpSystolic: number | null
   bpDiastolic: number | null
   spo2: number | null
-  respiratoryRate: number | null
 } | null
 
 export function VitalsForm({
@@ -38,7 +37,6 @@ export function VitalsForm({
     bpSystolic: initial?.bpSystolic?.toString() ?? "",
     bpDiastolic: initial?.bpDiastolic?.toString() ?? "",
     spo2: initial?.spo2?.toString() ?? "",
-    respiratoryRate: initial?.respiratoryRate?.toString() ?? "",
   })
   const [pending, startTransition] = useTransition()
 
@@ -65,7 +63,6 @@ export function VitalsForm({
           bpSystolic: form.bpSystolic ? Number(form.bpSystolic) : null,
           bpDiastolic: form.bpDiastolic ? Number(form.bpDiastolic) : null,
           spo2: form.spo2 ? Number(form.spo2) : null,
-          respiratoryRate: form.respiratoryRate ? Number(form.respiratoryRate) : null,
         })
         toast.success("Vitals saved")
       } catch (err) {
@@ -82,7 +79,6 @@ export function VitalsForm({
     { key: "bpSystolic", label: "BP Systolic", unit: "mmHg" },
     { key: "bpDiastolic", label: "BP Diastolic", unit: "mmHg" },
     { key: "spo2", label: "SpO2", unit: "%" },
-    { key: "respiratoryRate", label: "Resp. Rate", unit: "/min" },
   ]
 
   return (

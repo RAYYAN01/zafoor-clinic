@@ -13,7 +13,6 @@ export const vitalsSchema = z.object({
   bpSystolic: z.coerce.number().int().positive().optional().nullable(),
   bpDiastolic: z.coerce.number().int().positive().optional().nullable(),
   spo2: z.coerce.number().int().min(0).max(100).optional().nullable(),
-  respiratoryRate: z.coerce.number().int().positive().optional().nullable(),
 })
 export type VitalsInput = z.infer<typeof vitalsSchema>
 
@@ -100,16 +99,6 @@ export const labResultItemSchema = z.object({
 })
 export type LabResultItemInput = z.infer<typeof labResultItemSchema>
 
-export const dischargeSummarySchema = z.object({
-  diagnosis: z.string().trim().optional(),
-  proceduresPerformed: z.string().trim().optional(),
-  hospitalCourse: z.string().trim().optional(),
-  medicationsOnDischarge: z.string().trim().optional(),
-  followUpInstructions: z.string().trim().optional(),
-  conditionAtDischarge: z.string().trim().optional(),
-})
-export type DischargeSummaryInput = z.infer<typeof dischargeSummarySchema>
-
 export const referralNoteSchema = z.object({
   toDoctor: z.string().trim().min(1, "Referred-to doctor is required"),
   toSpecialty: z.string().trim().optional(),
@@ -136,7 +125,7 @@ export const prescriptionSchema = z.object({
 export type PrescriptionInput = z.infer<typeof prescriptionSchema>
 
 export const certificateSchema = z.object({
-  type: z.enum(["FITNESS", "SICK_LEAVE", "MEDICAL", "VACCINATION", "OTHER"]),
+  type: z.enum(["FITNESS", "SICK_LEAVE", "MEDICAL", "OTHER"]),
   title: z.string().trim().min(1, "Title is required"),
   content: z.string().trim().min(1, "Content is required"),
   validFrom: z.string().optional(),

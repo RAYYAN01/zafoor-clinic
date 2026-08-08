@@ -48,7 +48,7 @@ export async function getExpenses(params: { category?: string; from?: Date; to?:
 export async function getOutstandingDues() {
   const bills = await prisma.bill.findMany({
     where: { balanceDue: { gt: 0 }, status: { in: ["PENDING", "PARTIALLY_PAID"] } },
-    include: { patient: true },
+    include: { patient: true, service: true },
     orderBy: { issuedAt: "asc" },
   })
 
@@ -76,7 +76,7 @@ export async function getRevenueDashboard() {
   const [bills, payments, expensesThisMonth, outstandingTotal] = await Promise.all([
     prisma.bill.findMany({
       where: { issuedAt: { gte: monthStart }, status: { not: "CANCELLED" } },
-      select: { issuedAt: true, netAmount: true, type: true, taxAmount: true },
+      select: { issuedAt: true, netAmount: true, taxAmount: true, service: { select: { name: true } } },
     }),
     prisma.payment.findMany({
       where: { paidAt: { gte: monthStart }, status: "SUCCESS" },
@@ -116,9 +116,10 @@ export async function getRevenueDashboard() {
     revenueByDay.push({ date: format(day, "dd MMM"), revenue })
   }
 
-  const revenueByType: Record<string, number> = {}
+  const revenueByService: Record<string, number> = {}
   for (const b of bills) {
-    revenueByType[b.type] = (revenueByType[b.type] ?? 0) + Number(b.netAmount)
+    const label = b.service?.name ?? "Other"
+    revenueByService[label] = (revenueByService[label] ?? 0) + Number(b.netAmount)
   }
 
   const collectionsByMethod: Record<string, number> = {}
@@ -135,7 +136,7 @@ export async function getRevenueDashboard() {
     monthExpenses: Number(expensesThisMonth._sum.amount ?? 0),
     totalOutstanding: Number(outstandingTotal._sum.balanceDue ?? 0),
     revenueByDay,
-    revenueByType,
+    revenueByService,
     collectionsByMethod,
   }
 }
@@ -146,6 +147,7 @@ export async function getFinancialReport(from: Date, to: Date) {
   const [bills, payments, expenses] = await Promise.all([
     prisma.bill.findMany({
       where: { issuedAt: { gte: from, lte: to }, status: { not: "CANCELLED" } },
+      include: { service: { select: { name: true } } },
     }),
     prisma.payment.findMany({
       where: { paidAt: { gte: from, lte: to }, status: "SUCCESS" },
@@ -156,12 +158,14 @@ export async function getFinancialReport(from: Date, to: Date) {
   const totalRevenue = bills.reduce((sum, b) => sum + Number(b.netAmount), 0)
   const totalCollected = payments.reduce((sum, p) => sum + Number(p.amount), 0)
   const totalDiscount = bills.reduce((sum, b) => sum + Number(b.discountAmount), 0)
-  const totalCgst = bills.reduce((sum, b) => sum + Number(b.cgstAmount), 0)
-  const totalSgst = bills.reduce((sum, b) => sum + Number(b.sgstAmount), 0)
+  const totalTax = bills.reduce((sum, b) => sum + Number(b.taxAmount), 0)
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
-  const revenueByType: Record<string, number> = {}
-  for (const b of bills) revenueByType[b.type] = (revenueByType[b.type] ?? 0) + Number(b.netAmount)
+  const revenueByService: Record<string, number> = {}
+  for (const b of bills) {
+    const label = b.service?.name ?? "Other"
+    revenueByService[label] = (revenueByService[label] ?? 0) + Number(b.netAmount)
+  }
 
   const paymentsByMethod: Record<string, number> = {}
   for (const p of payments) paymentsByMethod[p.method] = (paymentsByMethod[p.method] ?? 0) + Number(p.amount)
@@ -176,12 +180,10 @@ export async function getFinancialReport(from: Date, to: Date) {
     totalRevenue,
     totalCollected,
     totalDiscount,
-    totalCgst,
-    totalSgst,
-    totalTax: totalCgst + totalSgst,
+    totalTax,
     totalExpenses,
     netProfit: totalCollected - totalExpenses,
-    revenueByType,
+    revenueByService,
     paymentsByMethod,
     expensesByCategory,
   }

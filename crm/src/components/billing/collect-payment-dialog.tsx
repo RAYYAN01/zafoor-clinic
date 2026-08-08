@@ -65,7 +65,6 @@ export function CollectPaymentDialog({
                   amount: Number(amount),
                   method: method as never,
                   referenceNumber: String(fd.get("referenceNumber") || "") || undefined,
-                  gatewayProvider: method === "CARD" || method === "UPI" || method === "NET_BANKING" ? "Simulated Gateway" : undefined,
                 })
                 toast.success("Payment collected")
                 setOpen(false)

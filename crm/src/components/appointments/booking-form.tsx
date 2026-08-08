@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select"
 import { PatientPicker } from "@/components/appointments/patient-picker"
 import { getAvailableSlots, bookAppointment } from "@/actions/appointments"
-import { appointmentTypeLabels } from "@/lib/labels"
 
 type Doctor = { id: string; name: string; specialization: string | null }
 type InitialPatient = { id: string; name: string; uhid: string; phone: string } | null
@@ -30,7 +29,7 @@ export function BookingForm({ doctors, initialPatient }: { doctors: Doctor[]; in
   const [patientId, setPatientId] = useState(initialPatient?.id ?? "")
   const [doctorId, setDoctorId] = useState(doctors[0]?.id ?? "")
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"))
-  const [type, setType] = useState<"IN_PERSON" | "VIDEO">("IN_PERSON")
+  const type = "IN_PERSON" as const
   const [reason, setReason] = useState("")
   const [slots, setSlots] = useState<Date[]>([])
   const [onLeave, setOnLeave] = useState<{ onLeave: boolean; reason?: string | null }>({ onLeave: false })
@@ -104,20 +103,6 @@ export function BookingForm({ doctors, initialPatient }: { doctors: Doctor[]; in
                     Dr. {d.name}{d.specialization ? ` — ${d.specialization}` : ""}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Consultation type</Label>
-            <Select
-              items={{ IN_PERSON: appointmentTypeLabels.IN_PERSON, VIDEO: appointmentTypeLabels.VIDEO }}
-              value={type}
-              onValueChange={(v) => setType((v ?? "IN_PERSON") as "IN_PERSON" | "VIDEO")}
-            >
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="IN_PERSON">{appointmentTypeLabels.IN_PERSON}</SelectItem>
-                <SelectItem value="VIDEO">{appointmentTypeLabels.VIDEO}</SelectItem>
               </SelectContent>
             </Select>
           </div>

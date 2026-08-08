@@ -13,7 +13,6 @@ import {
   medicalAlertSchema,
   allergySchema,
   chronicDiseaseSchema,
-  vaccinationSchema,
   communicationPreferenceSchema,
   documentSchema,
   type PatientCoreInput,
@@ -23,7 +22,6 @@ import {
   type MedicalAlertInput,
   type AllergyInput,
   type ChronicDiseaseInput,
-  type VaccinationInput,
   type CommunicationPreferenceInput,
   type DocumentInput,
 } from "@/lib/validations/patient"
@@ -50,7 +48,6 @@ export async function createPatient(input: PatientCoreInput) {
         dob: parseDob(data.dob),
         gender: data.gender,
         bloodGroup: data.bloodGroup ?? "UNKNOWN",
-        maritalStatus: data.maritalStatus ?? "UNKNOWN",
         occupation: data.occupation || null,
         phone: data.phone,
         alternatePhone: data.alternatePhone || null,
@@ -86,7 +83,6 @@ export async function updatePatientCore(patientId: string, input: PatientCoreInp
       dob: parseDob(data.dob),
       gender: data.gender,
       bloodGroup: data.bloodGroup ?? "UNKNOWN",
-      maritalStatus: data.maritalStatus ?? "UNKNOWN",
       occupation: data.occupation || null,
       phone: data.phone,
       alternatePhone: data.alternatePhone || null,
@@ -105,7 +101,7 @@ export async function updatePatientCore(patientId: string, input: PatientCoreInp
   return patient
 }
 
-export async function updatePatientStatus(patientId: string, status: "ACTIVE" | "INACTIVE" | "DECEASED") {
+export async function updatePatientStatus(patientId: string, status: "ACTIVE" | "INACTIVE") {
   await prisma.patient.update({ where: { id: patientId }, data: { status } })
   revalidatePath(`/patients/${patientId}`)
   revalidatePath("/patients")
@@ -158,7 +154,6 @@ export async function getPatientById(patientId: string) {
       medicalAlerts: { orderBy: { createdAt: "desc" } },
       allergies: { orderBy: { notedOn: "desc" } },
       chronicDiseases: { orderBy: { createdAt: "desc" } },
-      vaccinations: { orderBy: { dateGiven: "desc" } },
       documents: { orderBy: { uploadedAt: "desc" } },
       communicationPreference: true,
       registeredBy: true,
@@ -279,19 +274,6 @@ export async function addChronicDisease(patientId: string, input: ChronicDisease
 
 export async function deleteChronicDisease(patientId: string, id: string) {
   await prisma.chronicDisease.delete({ where: { id } })
-  revalidatePath(`/patients/${patientId}`)
-}
-
-// ── Vaccinations ────────────────────────────────────────────────────────
-
-export async function addVaccination(patientId: string, input: VaccinationInput) {
-  const data = vaccinationSchema.parse(input)
-  await prisma.vaccination.create({ data: { ...data, patientId } })
-  revalidatePath(`/patients/${patientId}`)
-}
-
-export async function deleteVaccination(patientId: string, id: string) {
-  await prisma.vaccination.delete({ where: { id } })
   revalidatePath(`/patients/${patientId}`)
 }
 

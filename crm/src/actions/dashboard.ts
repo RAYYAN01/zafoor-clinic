@@ -28,10 +28,10 @@ export async function getDashboardStats() {
       orderBy: { scheduledAt: "asc" },
     }),
     prisma.appointment.count({
-      where: { checkedInAt: { gte: dayStart, lte: dayEnd }, status: "CHECKED_IN" },
+      where: { checkedInAt: { gte: dayStart, lte: dayEnd }, status: "ARRIVED" },
     }),
     prisma.appointment.count({
-      where: { status: "IN_PROGRESS" },
+      where: { status: "IN_CONSULTATION" },
     }),
     prisma.appointment.count({
       where: { scheduledAt: { gte: dayStart, lte: dayEnd }, status: "NO_SHOW" },
@@ -39,7 +39,7 @@ export async function getDashboardStats() {
     prisma.appointment.count({
       where: {
         scheduledAt: { gte: dayStart, lt: now },
-        status: { in: ["SCHEDULED", "CONFIRMED"] },
+        status: { in: ["PENDING", "CONFIRMED"] },
       },
     }),
     prisma.followUp.findMany({

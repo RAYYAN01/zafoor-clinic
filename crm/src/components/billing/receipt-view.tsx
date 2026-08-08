@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { formatCurrency, formatDateTime, patientDisplayName } from "@/lib/format"
 import { paymentMethodLabels } from "@/lib/labels"
-import { HOSPITAL_INFO } from "@/lib/hospital-info"
+import { CLINIC_INFO } from "@/lib/hospital-info"
 import type { getReceipt } from "@/actions/payments"
 
 type Payment = NonNullable<Awaited<ReturnType<typeof getReceipt>>>
@@ -29,9 +29,8 @@ export function ReceiptView({ payment }: { payment: Payment }) {
       <Card>
         <CardContent className="pt-6 space-y-4 text-sm">
           <div className="text-center">
-            <p className="font-semibold">{HOSPITAL_INFO.name}</p>
-            <p className="text-xs text-muted-foreground">{HOSPITAL_INFO.address}</p>
-            <p className="text-xs text-muted-foreground">GSTIN: {HOSPITAL_INFO.gstin}</p>
+            <p className="font-semibold">{CLINIC_INFO.name}</p>
+            <p className="text-xs text-muted-foreground">{CLINIC_INFO.address}</p>
           </div>
           <div className="text-center border-y py-2">
             <p className="font-medium">PAYMENT RECEIPT</p>

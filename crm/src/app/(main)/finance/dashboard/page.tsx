@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendBars } from "@/components/finance/trend-bars"
 import { BarBreakdown } from "@/components/finance/bar-breakdown"
 import { formatCurrency } from "@/lib/format"
-import { billTypeLabels, paymentMethodLabels } from "@/lib/labels"
+import { paymentMethodLabels } from "@/lib/labels"
 
 export default async function FinanceDashboardPage() {
   const stats = await getRevenueDashboard()
 
-  const revenueByType = Object.entries(stats.revenueByType).map(([type, value]) => ({
-    label: billTypeLabels[type] ?? type,
+  const revenueByService = Object.entries(stats.revenueByService).map(([label, value]) => ({
+    label,
     value,
   }))
   const collectionsByMethod = Object.entries(stats.collectionsByMethod).map(([method, value]) => ({
@@ -43,7 +43,7 @@ export default async function FinanceDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="pt-6">
-            <BarBreakdown title="Revenue by Bill Type (30 days)" data={revenueByType} />
+            <BarBreakdown title="Revenue by Service (30 days)" data={revenueByService} />
           </CardContent>
         </Card>
         <Card>
@@ -56,7 +56,7 @@ export default async function FinanceDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground uppercase">30-Day GST Collected</p>
+            <p className="text-xs text-muted-foreground uppercase">30-Day Tax Collected</p>
             <p className="text-xl font-semibold mt-1">{formatCurrency(stats.monthGst)}</p>
           </CardContent>
         </Card>

@@ -72,15 +72,12 @@ export function QueueBoard({ queue, doctors }: { queue: Queue; doctors: Doctor[]
 
 function QueueRow({ entry }: { entry: Queue[number] }) {
   const [pending, startTransition] = useTransition()
-  const isInProgress = entry.status === "IN_PROGRESS"
+  const isInProgress = entry.status === "IN_CONSULTATION"
 
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shrink-0">
-        {entry.tokenNumber}
-      </div>
-      <Avatar className="h-8 w-8 shrink-0">
-        <AvatarFallback className="text-xs">{initials(patientDisplayName(entry.patient))}</AvatarFallback>
+      <Avatar className="h-9 w-9 shrink-0">
+        <AvatarFallback className="text-sm font-semibold">{initials(patientDisplayName(entry.patient))}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
         <Link href={`/patients/${entry.patientId}`} className="text-sm font-medium hover:underline truncate block">

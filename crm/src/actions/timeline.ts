@@ -6,8 +6,6 @@ import { appointmentStatusLabels, appointmentTypeLabels, commChannelLabels } fro
 
 export type TimelineEventType =
   | "APPOINTMENT"
-  | "ADMISSION"
-  | "DISCHARGE"
   | "PRESCRIPTION"
   | "BILL"
   | "PAYMENT"
@@ -17,7 +15,6 @@ export type TimelineEventType =
   | "FEEDBACK"
   | "ENCOUNTER"
   | "CLINICAL_REPORT"
-  | "DISCHARGE_SUMMARY"
   | "REFERRAL"
   | "CERTIFICATE"
 
@@ -33,7 +30,6 @@ export type TimelineEvent = {
 export async function getPatientTimeline(patientId: string): Promise<TimelineEvent[]> {
   const [
     appointments,
-    admissions,
     prescriptions,
     bills,
     payments,
@@ -43,24 +39,21 @@ export async function getPatientTimeline(patientId: string): Promise<TimelineEve
     feedback,
     encounters,
     clinicalReports,
-    dischargeSummaries,
     referrals,
     certificates,
   ] = await Promise.all([
     prisma.appointment.findMany({ where: { patientId }, include: { doctor: true } }),
-    prisma.admission.findMany({ where: { patientId }, include: { doctor: true } }),
     prisma.prescription.findMany({ where: { patientId }, include: { doctor: true, items: true } }),
     prisma.bill.findMany({ where: { patientId } }),
     prisma.payment.findMany({ where: { patientId } }),
     prisma.document.findMany({
-      where: { patientId, category: { in: ["LAB_REPORT", "IMAGING", "DISCHARGE_SUMMARY"] } },
+      where: { patientId, category: { in: ["LAB_REPORT"] } },
     }),
     prisma.message.findMany({ where: { patientId }, include: { sentBy: true } }),
     prisma.patientNote.findMany({ where: { patientId }, include: { author: true } }),
     prisma.feedback.findMany({ where: { patientId } }),
     prisma.encounter.findMany({ where: { patientId, status: "FINALIZED" }, include: { doctor: true, diagnoses: true } }),
     prisma.clinicalReport.findMany({ where: { patientId } }),
-    prisma.dischargeSummaryRecord.findMany({ where: { patientId }, include: { doctor: true } }),
     prisma.referralNote.findMany({ where: { patientId }, include: { fromDoctor: true } }),
     prisma.certificate.findMany({ where: { patientId }, include: { doctor: true } }),
   ])
@@ -76,26 +69,6 @@ export async function getPatientTimeline(patientId: string): Promise<TimelineEve
       description: a.reason ?? undefined,
       badge: appointmentStatusLabels[a.status],
     })
-  }
-
-  for (const a of admissions) {
-    events.push({
-      id: `adm-${a.id}`,
-      type: "ADMISSION",
-      date: a.admittedAt,
-      title: `Admitted — ${a.wardType ?? "Ward"}${a.roomNumber ? ` (${a.roomNumber})` : ""}`,
-      description: a.reason ?? undefined,
-      badge: a.status,
-    })
-    if (a.dischargedAt) {
-      events.push({
-        id: `dis-${a.id}`,
-        type: "DISCHARGE",
-        date: a.dischargedAt,
-        title: "Discharged",
-        description: a.dischargeSummary ?? undefined,
-      })
-    }
   }
 
   for (const p of prescriptions) {
@@ -190,17 +163,6 @@ export async function getPatientTimeline(patientId: string): Promise<TimelineEve
       title: `${r.type === "LAB" ? "Lab Report" : "Radiology Report"} — ${r.title}`,
       description: r.impression ?? r.findings ?? undefined,
       badge: r.status,
-    })
-  }
-
-  for (const d of dischargeSummaries) {
-    events.push({
-      id: `dsr-${d.id}`,
-      type: "DISCHARGE_SUMMARY",
-      date: d.createdAt,
-      title: `Discharge Summary by Dr. ${d.doctor.name}`,
-      description: d.diagnosis ?? undefined,
-      badge: d.signedAt ? "Signed" : "Draft",
     })
   }
 

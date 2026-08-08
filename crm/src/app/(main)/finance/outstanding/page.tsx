@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatDate, patientDisplayName } from "@/lib/format"
-import { billTypeLabels } from "@/lib/labels"
 
 export default async function OutstandingDuesPage() {
   const { rows, buckets, totalOutstanding } = await getOutstandingDues()
@@ -39,7 +38,7 @@ export default async function OutstandingDuesPage() {
                 <TableRow>
                   <TableHead>Bill #</TableHead>
                   <TableHead>Patient</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Service</TableHead>
                   <TableHead>Issued</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead className="text-right">Balance Due</TableHead>
@@ -55,7 +54,7 @@ export default async function OutstandingDuesPage() {
                       <Link href={`/patients/${bill.patientId}`} className="hover:underline">{patientDisplayName(bill.patient)}</Link>
                       <p className="text-xs text-muted-foreground">{bill.patient.phone}</p>
                     </TableCell>
-                    <TableCell>{billTypeLabels[bill.type]}</TableCell>
+                    <TableCell>{bill.service?.name ?? "—"}</TableCell>
                     <TableCell>{formatDate(bill.issuedAt)}</TableCell>
                     <TableCell>
                       <Badge variant={bill.ageDays > 60 ? "secondary" : "outline"} className={bill.ageDays > 60 ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300" : ""}>

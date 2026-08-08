@@ -55,7 +55,7 @@ export function WalkInDialog({ doctors }: { doctors: Doctor[] }) {
                   doctorId,
                   reason: String(fd.get("reason") || "") || undefined,
                 })
-                toast.success(`Token #${apt.tokenNumber} issued`)
+                toast.success(`${apt.appointmentCode} added to the queue`)
                 setOpen(false)
                 setPatientId("")
               } catch (err) {

@@ -8,7 +8,6 @@ import { getClinicalHistory } from "@/actions/history"
 import { getClinicalReports } from "@/actions/reports"
 import { getPatientRecords } from "@/actions/records"
 import { getPatientBillingSummary } from "@/actions/billing"
-import { prisma } from "@/lib/prisma"
 import { PatientHeader } from "@/components/patients/profile/patient-header"
 import { OverviewTab } from "@/components/patients/profile/overview-tab"
 import { FamilyInsuranceTab } from "@/components/patients/profile/family-insurance-tab"
@@ -32,7 +31,7 @@ export default async function PatientProfilePage({
   const patient = await getPatientById(id)
   if (!patient) notFound()
 
-  const [timeline, crmData, staff, allTags, encounters, clinicalHistory, reports, records, admissions, billingSummary] =
+  const [timeline, crmData, staff, allTags, encounters, clinicalHistory, reports, records, billingSummary] =
     await Promise.all([
       getPatientTimeline(id),
       getPatientCrmData(id),
@@ -42,7 +41,6 @@ export default async function PatientProfilePage({
       getClinicalHistory(id),
       getClinicalReports(id),
       getPatientRecords(id),
-      prisma.admission.findMany({ where: { patientId: id }, orderBy: { admittedAt: "desc" } }),
       getPatientBillingSummary(id),
     ])
 
@@ -84,7 +82,7 @@ export default async function PatientProfilePage({
           <ClinicalHistoryTab patientId={id} data={clinicalHistory} />
         </TabsContent>
         <TabsContent value="records" className="mt-4">
-          <RecordsTab patientId={id} reports={reports} records={records} admissions={admissions} />
+          <RecordsTab patientId={id} reports={reports} records={records} />
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
           <DocumentsTab patient={patient} />

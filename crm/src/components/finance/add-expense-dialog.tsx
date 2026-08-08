@@ -25,7 +25,7 @@ export function AddExpenseDialog() {
   const [pending, startTransition] = useTransition()
   const router = useRouter()
 
-  const methodOptions = { CASH: paymentMethodLabels.CASH, CARD: paymentMethodLabels.CARD, UPI: paymentMethodLabels.UPI, NET_BANKING: paymentMethodLabels.NET_BANKING, WALLET: paymentMethodLabels.WALLET }
+  const methodOptions = { CASH: paymentMethodLabels.CASH, CARD: paymentMethodLabels.CARD, UPI: paymentMethodLabels.UPI, NET_BANKING: paymentMethodLabels.NET_BANKING }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

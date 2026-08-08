@@ -5,39 +5,11 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/auth"
 import { serializeDecimal } from "@/lib/serialize"
 import {
-  dischargeSummarySchema,
   referralNoteSchema,
   certificateSchema,
-  type DischargeSummaryInput,
   type ReferralNoteInput,
   type CertificateInput,
 } from "@/lib/validations/emr"
-
-// ── Discharge summary ───────────────────────────────────────────────────
-
-export async function createDischargeSummary(admissionId: string, patientId: string, input: DischargeSummaryInput) {
-  const data = dischargeSummarySchema.parse(input)
-  const user = await getCurrentUser()
-  const record = await prisma.dischargeSummaryRecord.create({
-    data: { ...data, admissionId, patientId, doctorId: user.id },
-  })
-  revalidatePath(`/patients/${patientId}`)
-  return record
-}
-
-export async function signDischargeSummary(id: string, patientId: string) {
-  await prisma.dischargeSummaryRecord.update({ where: { id }, data: { signedAt: new Date() } })
-  revalidatePath(`/patients/${patientId}`)
-}
-
-export async function getDischargeSummaries(patientId: string) {
-  const records = await prisma.dischargeSummaryRecord.findMany({
-    where: { patientId },
-    include: { doctor: true, admission: true },
-    orderBy: { createdAt: "desc" },
-  })
-  return records.map((r) => ({ ...r, doctor: serializeDecimal(r.doctor, ["consultationFee"]) }))
-}
 
 // ── Referral notes ──────────────────────────────────────────────────────
 
@@ -98,10 +70,9 @@ export async function getCertificates(patientId: string) {
 // ── Aggregate for Records tab ──────────────────────────────────────────
 
 export async function getPatientRecords(patientId: string) {
-  const [dischargeSummaries, referralNotes, certificates] = await Promise.all([
-    getDischargeSummaries(patientId),
+  const [referralNotes, certificates] = await Promise.all([
     getReferralNotes(patientId),
     getCertificates(patientId),
   ])
-  return { dischargeSummaries, referralNotes, certificates }
+  return { referralNotes, certificates }
 }

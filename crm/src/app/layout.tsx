@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Naaz Hospital CRM",
-  description: "Patient management system — Naaz Hospital",
+  title: "Zafoor Clinic CRM",
+  description: "Clinic management system — Zafoor Clinic",
 };
 
 export default function RootLayout({

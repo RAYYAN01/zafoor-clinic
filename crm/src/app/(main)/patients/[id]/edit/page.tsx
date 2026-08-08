@@ -25,7 +25,6 @@ export default async function EditPatientPage({
           dob: patient.dob,
           gender: patient.gender ?? undefined,
           bloodGroup: patient.bloodGroup ?? "UNKNOWN",
-          maritalStatus: patient.maritalStatus ?? "UNKNOWN",
           occupation: patient.occupation ?? "",
           phone: patient.phone,
           alternatePhone: patient.alternatePhone ?? "",

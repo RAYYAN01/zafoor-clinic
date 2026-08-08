@@ -10,14 +10,12 @@ import { Pagination } from "@/components/shared/pagination"
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; status?: string; payerType?: string; page?: string }>
+  searchParams: Promise<{ status?: string; page?: string }>
 }) {
   const sp = await searchParams
   const page = Number(sp.page) || 1
   const { bills, total, pageSize } = await getBills({
-    type: sp.type,
     status: sp.status,
-    payerType: sp.payerType,
     page,
   })
 

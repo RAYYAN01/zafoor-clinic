@@ -1,7 +1,5 @@
 import {
   CalendarDays,
-  BedDouble,
-  LogOut,
   Pill,
   Receipt,
   Wallet,
@@ -11,7 +9,6 @@ import {
   Star,
   Stethoscope,
   FlaskConical,
-  ClipboardCheck,
   Send,
   Award,
 } from "lucide-react"
@@ -22,8 +19,6 @@ import type { TimelineEvent, TimelineEventType } from "@/actions/timeline"
 
 const icons: Record<TimelineEventType, typeof CalendarDays> = {
   APPOINTMENT: CalendarDays,
-  ADMISSION: BedDouble,
-  DISCHARGE: LogOut,
   PRESCRIPTION: Pill,
   BILL: Receipt,
   PAYMENT: Wallet,
@@ -33,7 +28,6 @@ const icons: Record<TimelineEventType, typeof CalendarDays> = {
   FEEDBACK: Star,
   ENCOUNTER: Stethoscope,
   CLINICAL_REPORT: FlaskConical,
-  DISCHARGE_SUMMARY: ClipboardCheck,
   REFERRAL: Send,
   CERTIFICATE: Award,
 }

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { addMinutes, isBefore, isToday, parse, startOfDay, endOfDay } from "date-fns"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/auth"
-import { generateTokenNumber } from "@/lib/sequence"
+import { generateAppointmentCode } from "@/lib/sequence"
 import { serializeDecimal } from "@/lib/serialize"
 import {
   bookAppointmentSchema,
@@ -17,7 +17,7 @@ import {
   type WaitingListInput,
 } from "@/lib/validations/appointment"
 
-const ACTIVE_STATUSES = ["SCHEDULED", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] as const
+const ACTIVE_STATUSES = ["PENDING", "CONFIRMED", "ARRIVED", "IN_CONSULTATION"] as const
 
 // ── Slot computation ───────────────────────────────────────────────────
 
@@ -69,7 +69,6 @@ export async function getAvailableSlots(doctorId: string, date: Date) {
 
 export async function bookAppointment(input: BookAppointmentInput) {
   const data = bookAppointmentSchema.parse(input)
-  const user = await getCurrentUser()
 
   const conflict = await prisma.appointment.findFirst({
     where: {
@@ -80,25 +79,25 @@ export async function bookAppointment(input: BookAppointmentInput) {
   })
   if (conflict) throw new Error("This slot was just booked. Please choose another slot.")
 
-  const appointment = await prisma.appointment.create({
-    data: {
-      patientId: data.patientId,
-      doctorId: data.doctorId,
-      scheduledAt: data.scheduledAt,
-      durationMinutes: data.durationMinutes,
-      type: data.type,
-      reason: data.reason || null,
-      createdById: user.id,
-      videoLink: null,
-    },
-  })
+  const user = await getCurrentUser().catch(() => null)
 
-  if (data.type === "VIDEO") {
-    await prisma.appointment.update({
-      where: { id: appointment.id },
-      data: { videoLink: `/video-consultation/${appointment.id}` },
+  const appointment = await prisma.$transaction(async (tx) => {
+    const appointmentCode = await generateAppointmentCode(tx)
+    return tx.appointment.create({
+      data: {
+        appointmentCode,
+        patientId: data.patientId,
+        doctorId: data.doctorId,
+        serviceId: data.serviceId || null,
+        scheduledAt: data.scheduledAt,
+        durationMinutes: data.durationMinutes,
+        type: data.type,
+        reason: data.reason || null,
+        createdById: user?.id ?? null,
+        source: user ? "CRM" : "WEBSITE",
+      },
     })
-  }
+  })
 
   revalidatePath("/appointments")
   revalidatePath(`/patients/${data.patientId}`)
@@ -112,18 +111,19 @@ export async function createWalkIn(input: WalkInInput) {
   const now = new Date()
 
   const appointment = await prisma.$transaction(async (tx) => {
-    const token = await generateTokenNumber(tx, data.doctorId, now)
+    const appointmentCode = await generateAppointmentCode(tx)
     return tx.appointment.create({
       data: {
+        appointmentCode,
         patientId: data.patientId,
         doctorId: data.doctorId,
         scheduledAt: now,
         type: "WALK_IN",
-        status: "CHECKED_IN",
+        status: "ARRIVED",
         reason: data.reason || null,
-        tokenNumber: token,
         checkedInAt: now,
         createdById: user.id,
+        source: "CRM",
       },
     })
   })
@@ -159,24 +159,29 @@ export async function rescheduleAppointment(id: string, newScheduledAt: Date) {
   })
   if (conflict) throw new Error("This slot is already booked. Please choose another slot.")
 
-  const [, next] = await prisma.$transaction([
-    prisma.appointment.update({
+  const [, next] = await prisma.$transaction(async (tx) => {
+    const updated = await tx.appointment.update({
       where: { id },
       data: { status: "RESCHEDULED" },
-    }),
-    prisma.appointment.create({
+    })
+    const appointmentCode = await generateAppointmentCode(tx)
+    const created = await tx.appointment.create({
       data: {
+        appointmentCode,
         patientId: original.patientId,
         doctorId: original.doctorId,
+        serviceId: original.serviceId,
         scheduledAt: newScheduledAt,
         durationMinutes: original.durationMinutes,
         type: original.type,
         reason: original.reason,
         rescheduledFromId: id,
         createdById: original.createdById,
+        source: original.source,
       },
-    }),
-  ])
+    })
+    return [updated, created]
+  })
 
   revalidatePath("/appointments")
   revalidatePath(`/patients/${original.patientId}`)
@@ -184,15 +189,21 @@ export async function rescheduleAppointment(id: string, newScheduledAt: Date) {
   return next
 }
 
+export async function confirmAppointment(id: string) {
+  const appointment = await prisma.appointment.update({
+    where: { id },
+    data: { status: "CONFIRMED" },
+  })
+  revalidatePath("/appointments")
+  revalidatePath("/dashboard")
+  return appointment
+}
+
 export async function checkInAppointment(id: string) {
   const now = new Date()
-  const appointment = await prisma.$transaction(async (tx) => {
-    const existing = await tx.appointment.findUniqueOrThrow({ where: { id } })
-    const token = await generateTokenNumber(tx, existing.doctorId, now)
-    return tx.appointment.update({
-      where: { id },
-      data: { status: "CHECKED_IN", checkedInAt: now, tokenNumber: token },
-    })
+  const appointment = await prisma.appointment.update({
+    where: { id },
+    data: { status: "ARRIVED", checkedInAt: now },
   })
   revalidatePath("/queue")
   revalidatePath("/appointments")
@@ -214,7 +225,7 @@ export async function markNoShow(id: string) {
 export async function startConsultation(id: string) {
   const appointment = await prisma.appointment.update({
     where: { id },
-    data: { status: "IN_PROGRESS", startedAt: new Date() },
+    data: { status: "IN_CONSULTATION", startedAt: new Date() },
   })
   revalidatePath("/queue")
   revalidatePath("/appointments")
@@ -258,7 +269,7 @@ export async function getAppointments(params: {
   const [appointments, total] = await Promise.all([
     prisma.appointment.findMany({
       where,
-      include: { patient: true, doctor: true },
+      include: { patient: true, doctor: true, service: true },
       orderBy: { scheduledAt: "asc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -281,10 +292,10 @@ export async function getTodayQueue(doctorId?: string) {
     where: {
       doctorId,
       checkedInAt: { gte: dayStart, lte: dayEnd },
-      status: { in: ["CHECKED_IN", "IN_PROGRESS"] },
+      status: { in: ["ARRIVED", "IN_CONSULTATION"] },
     },
-    include: { patient: true, doctor: true },
-    orderBy: [{ tokenNumber: "asc" }],
+    include: { patient: true, doctor: true, service: true },
+    orderBy: [{ checkedInAt: "asc" }],
   })
   return queue.map((a) => ({ ...a, doctor: serializeDecimal(a.doctor, ["consultationFee"]) }))
 }
@@ -298,7 +309,7 @@ export async function getTodayAppointments(doctorId?: string) {
       scheduledAt: { gte: dayStart, lte: dayEnd },
       status: { notIn: ["CANCELLED", "RESCHEDULED"] },
     },
-    include: { patient: true, doctor: true },
+    include: { patient: true, doctor: true, service: true },
     orderBy: { scheduledAt: "asc" },
   })
 }

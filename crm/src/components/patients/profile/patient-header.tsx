@@ -32,7 +32,7 @@ export function PatientHeader({ patient, allTags }: { patient: Patient; allTags:
   function handleStatusChange(status: string | null) {
     if (!status) return
     startTransition(async () => {
-      await updatePatientStatus(patient.id, status as "ACTIVE" | "INACTIVE" | "DECEASED")
+      await updatePatientStatus(patient.id, status as "ACTIVE" | "INACTIVE")
       toast.success("Status updated")
     })
   }

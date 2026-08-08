@@ -17,41 +17,31 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PatientPicker } from "@/components/appointments/patient-picker"
-import { billTypeLabels, payerTypeLabels } from "@/lib/labels"
 import { formatCurrency } from "@/lib/format"
 import { createBill } from "@/actions/billing"
 import { getPatientInsurances } from "@/actions/patients"
 
-type Package = { id: string; name: string; price: unknown; includedItems: string[] }
-type CorporateAccount = { id: string; companyName: string }
+type Service = { id: string; name: string; price: unknown }
 type Insurance = { id: string; provider: string; policyNumber: string }
-type LineItem = { description: string; hsnCode: string; quantity: string; unitPrice: string; taxRatePercent: string }
+type LineItem = { description: string; quantity: string; unitPrice: string; taxRatePercent: string }
 
-const emptyItem: LineItem = { description: "", hsnCode: "", quantity: "1", unitPrice: "", taxRatePercent: "0" }
+const emptyItem: LineItem = { description: "", quantity: "1", unitPrice: "", taxRatePercent: "0" }
 
 export function BillForm({
-  packages,
-  corporateAccounts,
+  services,
   initialPatient,
-  defaultAdmissionId,
   defaultAppointmentId,
-  defaultType,
 }: {
-  packages: Package[]
-  corporateAccounts: CorporateAccount[]
+  services: Service[]
   initialPatient: { id: string; name: string; uhid: string; phone: string; insurances: Insurance[] } | null
-  defaultAdmissionId?: string
   defaultAppointmentId?: string
-  defaultType?: string
 }) {
   const router = useRouter()
   const [patientId, setPatientId] = useState(initialPatient?.id ?? "")
   const [patientInsurances, setPatientInsurances] = useState<Insurance[]>(initialPatient?.insurances ?? [])
-  const [type, setType] = useState(defaultType ?? "OPD")
-  const [payerType, setPayerType] = useState("SELF")
+  const [usesInsurance, setUsesInsurance] = useState(false)
   const [insuranceId, setInsuranceId] = useState("")
-  const [corporateAccountId, setCorporateAccountId] = useState("")
-  const [packageId, setPackageId] = useState("")
+  const [serviceId, setServiceId] = useState("")
   const [discountAmount, setDiscountAmount] = useState("0")
   const [items, setItems] = useState<LineItem[]>([{ ...emptyItem }])
   const [pending, startTransition] = useTransition()
@@ -79,19 +69,11 @@ export function BillForm({
     setItems((prev) => prev.filter((_, i) => i !== index))
   }
 
-  function applyPackage(id: string) {
-    setPackageId(id)
-    const pkg = packages.find((p) => p.id === id)
-    if (!pkg) return
-    setItems([
-      {
-        description: pkg.name,
-        hsnCode: "",
-        quantity: "1",
-        unitPrice: String(Number(pkg.price)),
-        taxRatePercent: "0",
-      },
-    ])
+  function applyService(id: string) {
+    setServiceId(id)
+    const service = services.find((s) => s.id === id)
+    if (!service) return
+    setItems([{ description: service.name, quantity: "1", unitPrice: String(Number(service.price ?? 0)), taxRatePercent: "0" }])
   }
 
   const totals = useMemo(() => {
@@ -107,14 +89,7 @@ export function BillForm({
     }
     const discount = Number(discountAmount) || 0
     const netAmount = totalAmount + totalTax - discount
-    return {
-      totalAmount,
-      cgst: totalTax / 2,
-      sgst: totalTax / 2,
-      totalTax,
-      discount,
-      netAmount: Math.max(netAmount, 0),
-    }
+    return { totalAmount, totalTax, discount, netAmount: Math.max(netAmount, 0) }
   }, [items, discountAmount])
 
   function handleSubmit(e: React.FormEvent) {
@@ -128,12 +103,8 @@ export function BillForm({
       toast.error("Add at least one valid line item")
       return
     }
-    if (payerType === "INSURANCE" && !insuranceId) {
+    if (usesInsurance && !insuranceId) {
       toast.error("Select an insurance policy")
-      return
-    }
-    if (payerType === "CORPORATE" && !corporateAccountId) {
-      toast.error("Select a corporate account")
       return
     }
 
@@ -141,17 +112,12 @@ export function BillForm({
       try {
         const bill = await createBill({
           patientId,
-          type: type as never,
-          payerType: payerType as never,
-          insuranceId: payerType === "INSURANCE" ? insuranceId : undefined,
-          corporateAccountId: payerType === "CORPORATE" ? corporateAccountId : undefined,
-          admissionId: defaultAdmissionId,
+          insuranceId: usesInsurance ? insuranceId : undefined,
           appointmentId: defaultAppointmentId,
-          packageId: packageId || undefined,
+          serviceId: serviceId || undefined,
           discountAmount: Number(discountAmount) || 0,
           items: validItems.map((it) => ({
             description: it.description,
-            hsnCode: it.hsnCode || undefined,
             quantity: Number(it.quantity) || 1,
             unitPrice: Number(it.unitPrice) || 0,
             taxRatePercent: Number(it.taxRatePercent) || 0,
@@ -175,32 +141,43 @@ export function BillForm({
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Billing Type & Payer</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Service & Payer</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
+          {services.length > 0 && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Service (optional)</Label>
+              <Select
+                items={{ NONE: "No service", ...Object.fromEntries(services.map((s) => [s.id, `${s.name} — ${formatCurrency(Number(s.price ?? 0))}`])) }}
+                value={serviceId || "NONE"}
+                onValueChange={(v) => (v && v !== "NONE" ? applyService(v) : setServiceId(""))}
+              >
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">No service</SelectItem>
+                  {services.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name} — {formatCurrency(Number(s.price ?? 0))}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label>Bill type</Label>
-            <Select items={billTypeLabels} value={type} onValueChange={(v) => setType(v ?? "OPD")}>
+            <Label>Payer</Label>
+            <Select
+              items={{ SELF: "Self-pay", INSURANCE: "Insurance" }}
+              value={usesInsurance ? "INSURANCE" : "SELF"}
+              onValueChange={(v) => setUsesInsurance(v === "INSURANCE")}
+            >
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(billTypeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Payer type</Label>
-            <Select items={payerTypeLabels} value={payerType} onValueChange={(v) => setPayerType(v ?? "SELF")}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(payerTypeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
+                <SelectItem value="SELF">Self-pay</SelectItem>
+                <SelectItem value="INSURANCE">Insurance</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {payerType === "INSURANCE" && (
+          {usesInsurance && (
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Insurance policy</Label>
               {patientInsurances.length === 0 ? (
@@ -221,43 +198,6 @@ export function BillForm({
               )}
             </div>
           )}
-
-          {payerType === "CORPORATE" && (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Corporate account</Label>
-              <Select
-                items={Object.fromEntries(corporateAccounts.map((c) => [c.id, c.companyName]))}
-                value={corporateAccountId}
-                onValueChange={(v) => setCorporateAccountId(v ?? "")}
-              >
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select company" /></SelectTrigger>
-                <SelectContent>
-                  {corporateAccounts.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.companyName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {packages.length > 0 && (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Apply package (optional)</Label>
-              <Select
-                items={{ NONE: "No package", ...Object.fromEntries(packages.map((p) => [p.id, `${p.name} — ${formatCurrency(Number(p.price))}`])) }}
-                value={packageId || "NONE"}
-                onValueChange={(v) => (v && v !== "NONE" ? applyPackage(v) : setPackageId(""))}
-              >
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NONE">No package</SelectItem>
-                  {packages.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name} — {formatCurrency(Number(p.price))}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -266,17 +206,12 @@ export function BillForm({
         <CardContent className="space-y-3">
           {items.map((item, index) => (
             <div key={index} className="grid grid-cols-[1fr_auto] gap-2 rounded-lg border p-3">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Input
                   placeholder="Description"
                   value={item.description}
                   onChange={(e) => updateItem(index, "description", e.target.value)}
                   className="col-span-2 sm:col-span-2"
-                />
-                <Input
-                  placeholder="HSN/SAC"
-                  value={item.hsnCode}
-                  onChange={(e) => updateItem(index, "hsnCode", e.target.value)}
                 />
                 <Input
                   type="number"
@@ -289,12 +224,6 @@ export function BillForm({
                   placeholder="Unit price"
                   value={item.unitPrice}
                   onChange={(e) => updateItem(index, "unitPrice", e.target.value)}
-                />
-                <Input
-                  type="number"
-                  placeholder="Tax %"
-                  value={item.taxRatePercent}
-                  onChange={(e) => updateItem(index, "taxRatePercent", e.target.value)}
                 />
               </div>
               <Button
@@ -329,8 +258,7 @@ export function BillForm({
 
           <div className="space-y-1.5 rounded-lg bg-muted p-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatCurrency(totals.totalAmount)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">CGST</span><span>{formatCurrency(totals.cgst)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">SGST</span><span>{formatCurrency(totals.sgst)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>{formatCurrency(totals.totalTax)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span>-{formatCurrency(totals.discount)}</span></div>
             <Separator />
             <div className="flex justify-between font-semibold text-base"><span>Net Amount</span><span>{formatCurrency(totals.netAmount)}</span></div>

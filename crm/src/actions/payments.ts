@@ -59,7 +59,6 @@ export async function collectPayment(billId: string, patientId: string, input: C
         method: data.method,
         status: "SUCCESS",
         referenceNumber: data.referenceNumber || null,
-        gatewayProvider: data.gatewayProvider || null,
         cashSessionId,
         receivedById: user.id,
       },

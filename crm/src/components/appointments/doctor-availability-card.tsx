@@ -53,7 +53,6 @@ export function DoctorAvailabilityCard({ doctor }: { doctor: Doctor }) {
               <div key={a.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
                 <span>
                   {dayNames[a.dayOfWeek]} · {a.startTime}–{a.endTime}
-                  {a.location ? ` · ${a.location}` : ""}
                 </span>
                 <DeleteButton onDelete={() => deleteAvailability(a.id)} />
               </div>
@@ -100,8 +99,7 @@ function AvailabilityForm({ doctorId, onDone }: { doctorId: string; onDone: () =
               dayOfWeek: Number(fd.get("dayOfWeek")),
               startTime: String(fd.get("startTime")),
               endTime: String(fd.get("endTime")),
-              slotDurationMinutes: Number(fd.get("slotDurationMinutes") || 15),
-              location: String(fd.get("location") || "") || undefined,
+              slotDurationMinutes: Number(fd.get("slotDurationMinutes") || 30),
             })
             toast.success("Slot added")
             onDone()
@@ -136,15 +134,9 @@ function AvailabilityForm({ doctorId, onDone }: { doctorId: string; onDone: () =
           <Input id="endTime" name="endTime" type="time" required />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="slotDurationMinutes">Slot duration (min)</Label>
-          <Input id="slotDurationMinutes" name="slotDurationMinutes" type="number" defaultValue={15} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="location">Location</Label>
-          <Input id="location" name="location" />
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="slotDurationMinutes">Slot duration (min)</Label>
+        <Input id="slotDurationMinutes" name="slotDurationMinutes" type="number" defaultValue={30} />
       </div>
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Saving…" : "Add Slot"}</Button>
     </form>

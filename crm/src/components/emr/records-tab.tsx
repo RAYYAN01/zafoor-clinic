@@ -21,8 +21,6 @@ import { DeleteButton } from "@/components/shared/delete-button"
 import { formatDate } from "@/lib/format"
 import { createClinicalReport, deleteClinicalReport, type getClinicalReports } from "@/actions/reports"
 import {
-  createDischargeSummary,
-  signDischargeSummary,
   createReferralNote,
   signReferralNote,
   createCertificate,
@@ -32,18 +30,15 @@ import {
 
 type Reports = Awaited<ReturnType<typeof getClinicalReports>>
 type Records = Awaited<ReturnType<typeof getPatientRecords>>
-type Admission = { id: string; admittedAt: Date; wardType: string | null; status: string }
 
 export function RecordsTab({
   patientId,
   reports,
   records,
-  admissions,
 }: {
   patientId: string
   reports: Reports
   records: Records
-  admissions: Admission[]
 }) {
   const labReports = reports.filter((r) => r.type === "LAB")
   const radiologyReports = reports.filter((r) => r.type === "RADIOLOGY")
@@ -76,30 +71,6 @@ export function RecordsTab({
           {radiologyReports.length === 0 && <p className="text-sm text-muted-foreground">None recorded.</p>}
           {radiologyReports.map((r) => (
             <ReportRow key={r.id} patientId={patientId} report={r} />
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Discharge Summaries</CardTitle>
-          {admissions.length > 0 && (
-            <EntityDialog title="Create Discharge Summary">
-              {(close) => <DischargeSummaryForm patientId={patientId} admissions={admissions} onDone={close} />}
-            </EntityDialog>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {records.dischargeSummaries.length === 0 && <p className="text-sm text-muted-foreground">None recorded.</p>}
-          {records.dischargeSummaries.map((d) => (
-            <div key={d.id} className="rounded-lg border p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">{d.diagnosis || "Discharge Summary"}</p>
-                <SignBadge signedAt={d.signedAt} onSign={() => signDischargeSummary(d.id, patientId)} />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Dr. {d.doctor.name} · {formatDate(d.createdAt)}</p>
-              {d.hospitalCourse && <p className="text-xs text-muted-foreground mt-1">{d.hospitalCourse}</p>}
-            </div>
           ))}
         </CardContent>
       </Card>
@@ -323,76 +294,6 @@ function ReportForm({ patientId, type, onDone }: { patientId: string; type: "LAB
   )
 }
 
-function DischargeSummaryForm({ patientId, admissions, onDone }: { patientId: string; admissions: Admission[]; onDone: () => void }) {
-  const [pending, startTransition] = useTransition()
-  return (
-    <form
-      className="space-y-3"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const fd = new FormData(e.currentTarget)
-        startTransition(async () => {
-          try {
-            await createDischargeSummary(String(fd.get("admissionId")), patientId, {
-              diagnosis: String(fd.get("diagnosis") || "") || undefined,
-              proceduresPerformed: String(fd.get("proceduresPerformed") || "") || undefined,
-              hospitalCourse: String(fd.get("hospitalCourse") || "") || undefined,
-              medicationsOnDischarge: String(fd.get("medicationsOnDischarge") || "") || undefined,
-              followUpInstructions: String(fd.get("followUpInstructions") || "") || undefined,
-              conditionAtDischarge: String(fd.get("conditionAtDischarge") || "") || undefined,
-            })
-            toast.success("Discharge summary created")
-            onDone()
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Could not create discharge summary")
-          }
-        })
-      }}
-    >
-      <div className="space-y-1.5">
-        <Label>Admission</Label>
-        <Select
-          items={Object.fromEntries(admissions.map((a) => [a.id, `${a.wardType ?? "Ward"} · ${formatDate(a.admittedAt)}`]))}
-          name="admissionId"
-          defaultValue={admissions[0]?.id}
-        >
-          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {admissions.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.wardType ?? "Ward"} · {formatDate(a.admittedAt)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ds-diagnosis">Diagnosis</Label>
-        <Input id="ds-diagnosis" name="diagnosis" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ds-procedures">Procedures performed</Label>
-        <Textarea id="ds-procedures" name="proceduresPerformed" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ds-course">Hospital course</Label>
-        <Textarea id="ds-course" name="hospitalCourse" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ds-meds">Medications on discharge</Label>
-        <Textarea id="ds-meds" name="medicationsOnDischarge" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ds-followup">Follow-up instructions</Label>
-        <Textarea id="ds-followup" name="followUpInstructions" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="ds-condition">Condition at discharge</Label>
-        <Input id="ds-condition" name="conditionAtDischarge" placeholder="Stable, improved…" />
-      </div>
-      <Button type="submit" disabled={pending} className="w-full">{pending ? "Saving…" : "Create"}</Button>
-    </form>
-  )
-}
-
 function ReferralForm({ patientId, onDone }: { patientId: string; onDone: () => void }) {
   const [pending, startTransition] = useTransition()
   return (
@@ -477,7 +378,7 @@ function CertificateForm({ patientId, onDone }: { patientId: string; onDone: () 
       <div className="space-y-1.5">
         <Label>Type</Label>
         <Select
-          items={{ FITNESS: "Fitness", SICK_LEAVE: "Sick Leave", MEDICAL: "Medical", VACCINATION: "Vaccination", OTHER: "Other" }}
+          items={{ FITNESS: "Fitness", SICK_LEAVE: "Sick Leave", MEDICAL: "Medical", OTHER: "Other" }}
           name="type"
           defaultValue="MEDICAL"
         >
@@ -486,7 +387,6 @@ function CertificateForm({ patientId, onDone }: { patientId: string; onDone: () 
             <SelectItem value="FITNESS">Fitness</SelectItem>
             <SelectItem value="SICK_LEAVE">Sick Leave</SelectItem>
             <SelectItem value="MEDICAL">Medical</SelectItem>
-            <SelectItem value="VACCINATION">Vaccination</SelectItem>
             <SelectItem value="OTHER">Other</SelectItem>
           </SelectContent>
         </Select>

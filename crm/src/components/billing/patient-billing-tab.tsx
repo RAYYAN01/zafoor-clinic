@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select"
 import { EntityDialog } from "@/components/shared/entity-dialog"
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format"
-import { billTypeLabels, billStatusLabels, billStatusColors, refundStatusLabels, refundStatusColors, paymentMethodLabels } from "@/lib/labels"
+import { billStatusLabels, billStatusColors, refundStatusLabels, refundStatusColors, paymentMethodLabels } from "@/lib/labels"
 import { addAdvance } from "@/actions/payments"
 import type { getPatientBillingSummary } from "@/actions/billing"
 
@@ -53,7 +53,7 @@ export function PatientBillingTab({ patientId, summary }: { patientId: string; s
             <Link key={bill.id} href={`/billing/${bill.id}`} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted transition-colors">
               <div>
                 <p className="text-sm font-medium">{bill.billNumber}</p>
-                <p className="text-xs text-muted-foreground">{billTypeLabels[bill.type]} · {formatDate(bill.issuedAt)}</p>
+                <p className="text-xs text-muted-foreground">{formatDate(bill.issuedAt)}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">{formatCurrency(Number(bill.netAmount))}</p>
@@ -142,7 +142,7 @@ function AddAdvanceForm({ patientId, onDone }: { patientId: string; onDone: () =
       <div className="space-y-1.5">
         <Label>Method</Label>
         <Select
-          items={{ CASH: paymentMethodLabels.CASH, CARD: paymentMethodLabels.CARD, UPI: paymentMethodLabels.UPI, NET_BANKING: paymentMethodLabels.NET_BANKING, WALLET: paymentMethodLabels.WALLET }}
+          items={{ CASH: paymentMethodLabels.CASH, CARD: paymentMethodLabels.CARD, UPI: paymentMethodLabels.UPI, NET_BANKING: paymentMethodLabels.NET_BANKING }}
           value={method}
           onValueChange={(v) => setMethod(v ?? "CASH")}
         >
@@ -152,7 +152,6 @@ function AddAdvanceForm({ patientId, onDone }: { patientId: string; onDone: () =
             <SelectItem value="CARD">{paymentMethodLabels.CARD}</SelectItem>
             <SelectItem value="UPI">{paymentMethodLabels.UPI}</SelectItem>
             <SelectItem value="NET_BANKING">{paymentMethodLabels.NET_BANKING}</SelectItem>
-            <SelectItem value="WALLET">{paymentMethodLabels.WALLET}</SelectItem>
           </SelectContent>
         </Select>
       </div>
