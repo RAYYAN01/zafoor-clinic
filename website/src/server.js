@@ -35,10 +35,9 @@ app.use(compression())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use(express.static(path.join(__dirname, "public"), { maxAge: "1d" }))
-// Real clinic photos/videos live in the repo-root public/ folder (shared
-// asset dump), separate from this app's own css/js under src/public.
-app.use("/media", express.static(path.join(__dirname, "..", "..", "public"), { maxAge: "7d" }))
+// Serves css/js and the clinic's own photos/videos (src/public/images,
+// /logo, /videos) — everything the site needs, all under this one app.
+app.use(express.static(path.join(__dirname, "public"), { maxAge: "7d" }))
 
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false })
 app.use("/api", apiLimiter, apiRouter)

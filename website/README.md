@@ -14,6 +14,14 @@ Home, About, Services (+ one page per service, e.g. `/services/hairfall-review`)
 Doctors, Book Appointment (5-step flow), Reviews, Contact, Location, FAQ,
 Privacy Policy, Terms & Conditions.
 
+## Assets
+
+`src/public/images`, `src/public/logo`, and `src/public/videos` are the
+clinic's real photos/videos/logo — served directly by the same
+`express.static` call that serves `css`/`js` (no separate mount). Filenames
+were slugified (lowercase, hyphenated, no spaces) for clean URLs; see git
+history if you need to map a slug back to the original filename.
+
 ## Setup
 
 ```bash

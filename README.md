@@ -9,7 +9,7 @@ Two apps, one database:
 ```
 crm/       Next.js 16 + Prisma + Postgres — the clinic's internal CRM/EMR/billing system
 website/   Node.js + Express + EJS + Tailwind CSS — the public marketing + booking site
-public/    Real clinic photos/videos/logo, served by the website at /media
+           (src/public/{images,logo,videos} holds the clinic's real photos/videos)
 ```
 
 `crm/prisma/schema.prisma` is the single source of truth for the data model. The
@@ -93,3 +93,8 @@ npm run dev:server         # http://localhost:3001
   were deliberately dropped as out of scope for a small single-clinic
   outpatient practice — see the schema trim commit if any of these turn
   out to be needed after all.
+- `website/src/public/{images,logo,videos}` (~250MB) is committed as
+  plain static files for simplicity. For a real production deploy, move
+  these to a CDN/object store (S3, Cloudinary, etc.) and point the `<img>`/
+  `<video>` `src` attributes there instead — keeps the git repo light and
+  gives you image resizing/compression for free.
