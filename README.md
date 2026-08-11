@@ -72,17 +72,45 @@ npm run build:css         # compile Tailwind once (or `npm run watch:css` while 
 npm run dev:server         # http://localhost:3001
 ```
 
+## Deployment (Vercel)
+
+Both apps are deployed as **separate Vercel projects** from this one repo
+(GitHub-connected — pushes to `master` auto-deploy both):
+
+- CRM: `zafoor-clinic-crm` → https://zafoor-clinic-crm.vercel.app (Root
+  Directory: `crm`)
+- Website: `zafoor-clinic-website` → https://zafoor-clinic-website-two.vercel.app
+  (Root Directory: `website`)
+
+The website deploys via `website/vercel.json`: `src/public/{css,js,images,
+logo,videos}` are served directly as static files (`@vercel/static`),
+everything else (pages, `/api/*`) runs through `website/api/index.js` as a
+Node serverless function (`@vercel/node`) wrapping the same Express app
+`npm run dev:server` uses locally (`website/src/app.js`).
+
+**⚠️ Required follow-up — both projects currently have a placeholder
+`DATABASE_URL`** (`postgresql://user:password@replace-with-real-host:...`)
+so the build succeeds, but every DB-touching page will 500 until you:
+
+1. Provision a real Postgres (Neon, Supabase, Vercel Postgres/Prisma
+   Postgres from the Storage tab, or your own instance).
+2. Set the **same** `DATABASE_URL` on both projects:
+   `vercel env rm DATABASE_URL production` then
+   `vercel env add DATABASE_URL production` (or via each project's
+   Settings → Environment Variables in the dashboard).
+3. Run `npx prisma db push && npm run db:seed` from `crm/` against that
+   same URL.
+4. Redeploy both (`vercel --prod`, or just push a commit — GitHub is
+   connected).
+
 ## Known limitations / next steps
 
-- **Live database testing wasn't run against the current schema** in this
-  session (the only reachable database had leftover pre-trim rows and
-  resetting it required user confirmation that wasn't given). Everything
-  has been verified statically instead: `tsc --noEmit`, `next build`,
-  `node --check` on every website file, and a live boot test of the Express
-  server (confirmed routing/EJS/error-handling work; DB-touching requests
-  correctly return the styled error page when the DB is unreachable).
-  **Run `npx prisma db push && npm run db:seed` and click through both
-  apps before considering this production-ready.**
+- See the **Deployment** section above — the live Vercel deployments need
+  a real `DATABASE_URL` before they'll actually work end-to-end. Locally,
+  this has been fully verified live: seeded database, both servers
+  running, a real booking made through the website and confirmed showing
+  up in the CRM, double-booking correctly rejected, password hashing
+  round-tripped, RBAC-gated actions confirmed.
 - Contact page's message form uses a `mailto:` submit (opens the visitor's
   mail client) rather than a backend-persisted message — genuinely
   functional, but a nicer version would save to the CRM's `Message` model.
