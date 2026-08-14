@@ -1,7 +1,10 @@
 {
   "version": 2,
   "builds": [
-    { "src": "src/public/**", "use": "@vercel/static" },
+    { "src": "src/public/css/**", "use": "@vercel/static" },
+    { "src": "src/public/js/**", "use": "@vercel/static" },
+    { "src": "src/public/images/**", "use": "@vercel/static" },
+    { "src": "src/public/logo/**", "use": "@vercel/static" },
     { "src": "api/index.js", "use": "@vercel/node" }
   ],
   "routes": [
@@ -9,7 +12,6 @@
     { "src": "/js/(.*)", "dest": "/src/public/js/$1" },
     { "src": "/images/(.*)", "dest": "/src/public/images/$1" },
     { "src": "/logo/(.*)", "dest": "/src/public/logo/$1" },
-    { "src": "/videos/(.*)", "dest": "/src/public/videos/$1" },
     { "src": "/(.*)", "dest": "/api/index.js" }
   ]
 }
